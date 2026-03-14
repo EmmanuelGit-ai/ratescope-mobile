@@ -1,12 +1,22 @@
-// Prediction API Service
+// Prediction API Service — Supabase queries
 
-import { apiClient } from "./client";
-import { API_CONFIG } from "../constants/api";
-import type { PredictedScore } from "../types";
+import { supabase, handleSupabaseError } from "./client";
+import type { PredictedScore, ModifierScore } from "../types";
 
 export async function fetchPrediction(movieId: string): Promise<PredictedScore> {
-  const res = await apiClient.get(API_CONFIG.ENDPOINTS.PREDICT, {
-    params: { movieId },
-  });
-  return res.data.data;
+  const { data, error } = await supabase
+    .from("predictions")
+    .select("predicted_score, confidence_interval, modifier_breakdown, model_version, predicted_at")
+    .eq("movie_id", movieId)
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return {
+    predictedScore: data.predicted_score as number,
+    confidenceInterval: data.confidence_interval as { low: number; high: number },
+    modifierBreakdown: data.modifier_breakdown as ModifierScore[],
+    modelVersion: data.model_version as string,
+    predictedAt: data.predicted_at as string,
+  };
 }
