@@ -30,7 +30,7 @@ export async function fetchAggregatedScore(movieId: string): Promise<AggregatedS
       .single(),
     supabase
       .from("rating_sources")
-      .select("source, raw_score, normalized_score, vote_count")
+      .select("source_name, score, max_score, normalized_score")
       .eq("movie_id", movieId),
   ]);
 
@@ -41,16 +41,15 @@ export async function fetchAggregatedScore(movieId: string): Promise<AggregatedS
   const sources = sourcesResult.data ?? [];
 
   const sourceBreakdown: SourceRating[] = sources.map((s) => {
-    const source = s.source as RatingSource;
+    const source = s.source_name as RatingSource;
     const meta = SOURCE_LABELS[source];
     return {
       source,
-      rawScore: s.raw_score as number,
+      rawScore: s.score as number,
       normalizedScore: s.normalized_score as number,
-      weight: SOURCE_WEIGHTS[source],
-      voteCount: (s.vote_count as number) || undefined,
+      weight: SOURCE_WEIGHTS[source] ?? 0,
       label: meta?.label ?? source,
-      maxScore: meta?.maxScore ?? "?",
+      maxScore: s.max_score != null ? String(s.max_score) : (meta?.maxScore ?? "?"),
     };
   });
 

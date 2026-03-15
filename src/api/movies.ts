@@ -3,17 +3,23 @@
 import { supabase, supabaseConfigured, handleSupabaseError } from "./client";
 import type { Movie, MovieWithScores, AggregatedScore, Genre, CastMember } from "../types";
 
+const TMDB_GENRE_MAP: Record<number, string> = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
+  99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
+  27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi",
+  10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
+};
+
 const MOVIE_SELECT = `
   id,
   tmdb_id,
-  imdb_id,
   title,
   overview,
   release_date,
   runtime,
   budget,
   revenue,
-  genres,
+  genre_ids,
   director_name,
   poster_path,
   backdrop_path,
@@ -35,20 +41,23 @@ interface MoviesResponse {
 }
 
 function mapMovie(row: Record<string, unknown>): MovieWithScores {
-  const genres = row.genres as Array<{ id: number; name: string }> | null;
+  const genreIds = row.genre_ids as number[] | null;
+  const genres: Genre[] = (genreIds ?? []).map((gid) => ({
+    id: gid,
+    name: TMDB_GENRE_MAP[gid] ?? "Unknown",
+  }));
   const agg = row.aggregated_scores as Record<string, unknown> | null;
 
   const movie: MovieWithScores = {
     id: String(row.id),
     tmdbId: row.tmdb_id as number,
-    imdbId: (row.imdb_id as string) || undefined,
     title: row.title as string,
     overview: (row.overview as string) || undefined,
     releaseDate: (row.release_date as string) || undefined,
     runtime: (row.runtime as number) || undefined,
     budget: (row.budget as number) || undefined,
     revenue: (row.revenue as number) || undefined,
-    genres: (genres ?? []) as Genre[],
+    genres,
     cast: [],
     directorName: (row.director_name as string) || undefined,
     posterPath: (row.poster_path as string) || undefined,
@@ -126,13 +135,13 @@ export async function fetchMovieDetail(id: string): Promise<MovieWithScores> {
     .from("movies")
     .select(`
       ${MOVIE_SELECT},
-      cast_members (
-        id,
-        name,
-        character,
-        profile_path,
-        popularity
-      )
+     cast_members (
+  id,
+  person_name,
+  character_name,
+  profile_path,
+  display_order
+)
     `)
     .eq("id", id)
     .single();
@@ -143,12 +152,12 @@ export async function fetchMovieDetail(id: string): Promise<MovieWithScores> {
 
   const castRows = data.cast_members as Array<Record<string, unknown>> | null;
   if (castRows) {
-    movie.cast = castRows.map((c): CastMember => ({
-      id: c.id as number,
-      name: c.name as string,
-      character: c.character as string,
+    movie.cast = castRows.map((c, i): CastMember => ({
+      id: (c.id as number) ?? i,
+      name: (c.person_name as string) ?? "",
+      character: (c.character_name as string) ?? "",
       profilePath: (c.profile_path as string) || undefined,
-      popularity: c.popularity as number,
+      popularity: (c.display_order as number) ?? 0,
     }));
   }
 
@@ -197,7 +206,7 @@ export async function fetchMoviesByMood(params: {
 
   if (params.genreIds.length > 0) {
     query = query.or(
-      params.genreIds.map((gid) => `genres.cs.[{"id":${gid}}]`).join(",")
+      params.genreIds.map((gid) => `genre_ids.cs.{${gid}}`).join(",")
     );
   }
 
