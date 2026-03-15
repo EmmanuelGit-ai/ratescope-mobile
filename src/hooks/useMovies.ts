@@ -1,7 +1,7 @@
 // React Query hooks for movie data
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchMovies, fetchMovieDetail, fetchTrending, searchMovies } from "../api/movies";
+import { fetchMovieDetail, fetchTrending, searchMovies } from "../api/movies";
 import { fetchAggregatedScore } from "../api/ratings";
 import { fetchPrediction } from "../api/predict";
 import { API_CONFIG } from "../constants/api";
