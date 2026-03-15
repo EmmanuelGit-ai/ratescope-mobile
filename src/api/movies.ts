@@ -156,15 +156,28 @@ export async function fetchMovieDetail(id: string): Promise<MovieWithScores> {
 }
 
 export async function fetchTrending(): Promise<MovieWithScores[]> {
-  const { data, error } = await supabase
-    .from("movies")
-    .select(MOVIE_SELECT)
-    .order("popularity", { ascending: false })
-    .limit(20);
+  // DEBUG: temporary logging to diagnose fetch issue
+  console.log("[fetchTrending] starting query...");
+  try {
+    const { data, error } = await supabase
+      .from("movies")
+      .select(MOVIE_SELECT)
+      .order("popularity", { ascending: false })
+      .limit(20);
 
-  if (error) handleSupabaseError(error);
+    console.log("[fetchTrending] error:", JSON.stringify(error));
+    console.log("[fetchTrending] data count:", data?.length ?? 0);
+    if (data?.[0]) {
+      console.log("[fetchTrending] first row:", JSON.stringify(data[0]));
+    }
 
-  return (data ?? []).map(mapMovie);
+    if (error) handleSupabaseError(error);
+
+    return (data ?? []).map(mapMovie);
+  } catch (e) {
+    console.error("[fetchTrending] CAUGHT:", e);
+    throw e;
+  }
 }
 
 export async function searchMovies(query: string): Promise<MovieWithScores[]> {
