@@ -1,10 +1,10 @@
 // Supabase API Client
 // Re-exports the Supabase client and shared error class for all API modules
 
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseConfigured } from "../lib/supabase";
 import type { PostgrestError } from "@supabase/supabase-js";
 
-export { supabase };
+export { supabase, supabaseConfigured };
 
 export class ApiError extends Error {
   code: string;

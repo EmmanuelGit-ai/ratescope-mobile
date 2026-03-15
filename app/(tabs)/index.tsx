@@ -30,7 +30,7 @@ function ListHeader() {
 }
 
 export default function HomeScreen() {
-  const { data: movies, isLoading, isError, error, refetch } = useTrending();
+  const { data: movies, isLoading, isError, error, refetch, failureCount } = useTrending();
 
   if (isLoading) {
     return (
@@ -38,6 +38,11 @@ export default function HomeScreen() {
         <ListHeader />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.brand.green} />
+          {failureCount > 0 && (
+            <Text style={styles.retryingText}>
+              Retrying... (attempt {failureCount + 1})
+            </Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -57,6 +62,24 @@ export default function HomeScreen() {
             accessibilityLabel="Retry loading trending movies"
           >
             <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!movies || movies.length === 0) {
+    return (
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
+        <ListHeader />
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>No trending movies found</Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => refetch()}
+            accessibilityLabel="Retry loading trending movies"
+          >
+            <Text style={styles.retryText}>Refresh</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -119,6 +142,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: spacing.xxxl,
+  },
+  retryingText: {
+    fontSize: fontSize.sm,
+    color: colors.text.muted,
+    marginTop: spacing.md,
   },
   errorText: {
     fontSize: fontSize.md,

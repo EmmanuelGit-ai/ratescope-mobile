@@ -1,6 +1,6 @@
 // Movie API Service — Supabase queries
 
-import { supabase, handleSupabaseError } from "./client";
+import { supabase, supabaseConfigured, handleSupabaseError } from "./client";
 import type { Movie, MovieWithScores, AggregatedScore, Genre, CastMember } from "../types";
 
 const MOVIE_SELECT = `
@@ -156,28 +156,19 @@ export async function fetchMovieDetail(id: string): Promise<MovieWithScores> {
 }
 
 export async function fetchTrending(): Promise<MovieWithScores[]> {
-  // DEBUG: temporary logging to diagnose fetch issue
-  console.log("[fetchTrending] starting query...");
-  try {
-    const { data, error } = await supabase
-      .from("movies")
-      .select(MOVIE_SELECT)
-      .order("popularity", { ascending: false })
-      .limit(20);
-
-    console.log("[fetchTrending] error:", JSON.stringify(error));
-    console.log("[fetchTrending] data count:", data?.length ?? 0);
-    if (data?.[0]) {
-      console.log("[fetchTrending] first row:", JSON.stringify(data[0]));
-    }
-
-    if (error) handleSupabaseError(error);
-
-    return (data ?? []).map(mapMovie);
-  } catch (e) {
-    console.error("[fetchTrending] CAUGHT:", e);
-    throw e;
+  if (!supabaseConfigured) {
+    throw new Error("Supabase not configured. Restart Expo after setting EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env");
   }
+
+  const { data, error } = await supabase
+    .from("movies")
+    .select(MOVIE_SELECT)
+    .order("popularity", { ascending: false })
+    .limit(20);
+
+  if (error) handleSupabaseError(error);
+
+  return (data ?? []).map(mapMovie);
 }
 
 export async function searchMovies(query: string): Promise<MovieWithScores[]> {

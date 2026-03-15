@@ -13,6 +13,7 @@ export function useTrending() {
     queryKey: ["movies", "trending"],
     queryFn: fetchTrending,
     staleTime,
+    retry: 1,
   });
 }
 
