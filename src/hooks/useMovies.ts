@@ -1,7 +1,7 @@
 // React Query hooks for movie data
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchMovieDetail, fetchTrending, searchMovies } from "../api/movies";
+import { fetchMovies, fetchMovieDetail, fetchTrending, searchMovies, fetchMoviesByMood } from "../api/movies";
 import { fetchAggregatedScore } from "../api/ratings";
 import { fetchPrediction } from "../api/predict";
 import { API_CONFIG } from "../constants/api";
@@ -12,6 +12,20 @@ export function useTrending() {
   return useQuery({
     queryKey: ["movies", "trending"],
     queryFn: fetchTrending,
+    staleTime,
+  });
+}
+
+export function useMovies(params?: {
+  page?: number;
+  limit?: number;
+  genre?: string;
+  sort?: string;
+  search?: string;
+}) {
+  return useQuery({
+    queryKey: ["movies", "list", params],
+    queryFn: () => fetchMovies(params),
     staleTime,
   });
 }
@@ -29,7 +43,7 @@ export function useMovieSearch(query: string) {
   return useQuery({
     queryKey: ["movies", "search", query],
     queryFn: () => searchMovies(query),
-    staleTime: 60 * 1000, // 1 min for search
+    staleTime: 60 * 1000,
     enabled: query.length >= 2,
   });
 }
@@ -49,5 +63,18 @@ export function usePrediction(movieId: string) {
     queryFn: () => fetchPrediction(movieId),
     staleTime,
     enabled: !!movieId,
+  });
+}
+
+export function useMoviesByMood(params: {
+  genreIds: number[];
+  maxRuntime?: number;
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: ["movies", "mood", params.genreIds, params.maxRuntime],
+    queryFn: () => fetchMoviesByMood(params),
+    staleTime,
+    enabled: params.genreIds.length > 0,
   });
 }
