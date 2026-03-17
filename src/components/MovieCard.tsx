@@ -1,9 +1,10 @@
 // MovieCard — Poster + title + star rating + year + genres
 // Tappable card that navigates to movie detail screen
 
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { StarRating } from "./StarRating";
 import {
   colors,
@@ -11,6 +12,7 @@ import {
   fontWeight,
   spacing,
   borderRadius,
+  getScoreColor,
 } from "../constants/theme";
 import type { MovieWithScores } from "../types";
 
@@ -44,19 +46,34 @@ export function MovieCard({ movie }: MovieCardProps) {
         ]}
         accessibilityLabel={`${movie.title}${score ? `, rated ${score.toFixed(1)} out of 5` : ""}`}
       >
-        {posterUri ? (
-          <Image
-            source={{ uri: posterUri }}
-            style={styles.poster}
-            placeholder={{ blurhash: BLURHASH }}
-            contentFit="cover"
-            transition={200}
+        <View style={styles.posterContainer}>
+          {posterUri ? (
+            <Image
+              source={{ uri: posterUri }}
+              style={styles.poster}
+              placeholder={{ blurhash: BLURHASH }}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : (
+            <View style={[styles.poster, styles.posterPlaceholder]}>
+              <Text style={styles.posterPlaceholderText}>No Poster</Text>
+            </View>
+          )}
+
+          {/* Score badge overlay on poster */}
+          {score != null && (
+            <View style={[styles.scoreBadge, { backgroundColor: getScoreColor(score) }]}>
+              <Text style={styles.scoreBadgeText}>{score.toFixed(1)}</Text>
+            </View>
+          )}
+
+          {/* Bottom gradient on poster */}
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.6)"]}
+            style={styles.posterGradient}
           />
-        ) : (
-          <View style={[styles.poster, styles.posterPlaceholder]}>
-            <Text style={styles.posterPlaceholderText}>No Poster</Text>
-          </View>
-        )}
+        </View>
 
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={2}>
@@ -89,13 +106,32 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     backgroundColor: colors.surface.card,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     overflow: "hidden",
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+    ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+    }),
   },
   cardPressed: {
     backgroundColor: colors.surface.hover,
+    transform: [{ scale: 0.98 }],
+  },
+  posterContainer: {
+    width: POSTER_WIDTH,
+    height: POSTER_HEIGHT,
+    position: "relative",
   },
   poster: {
     width: POSTER_WIDTH,
@@ -109,6 +145,26 @@ const styles = StyleSheet.create({
   posterPlaceholderText: {
     color: colors.text.muted,
     fontSize: fontSize.xs,
+  },
+  posterGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+  scoreBadge: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
+  },
+  scoreBadgeText: {
+    color: "#FFFFFF",
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
   },
   info: {
     flex: 1,

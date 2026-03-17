@@ -6,12 +6,13 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Pressable,
   FlatList,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Clock, Calendar, Film, User } from "lucide-react-native";
 import { StarRating } from "../../src/components/StarRating";
 import { useMovieDetail, useAggregatedScore } from "../../src/hooks/useMovies";
@@ -22,7 +23,6 @@ import {
   spacing,
   borderRadius,
   getScoreColor,
-  getScoreLabel,
 } from "../../src/constants/theme";
 import type { CastMember, SourceRating } from "../../src/types";
 
@@ -71,34 +71,43 @@ export default function MovieDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Hero Backdrop */}
-        {backdropUri ? (
-          <Image
-            source={{ uri: backdropUri }}
-            style={styles.backdrop}
-            placeholder={{ blurhash: BLURHASH }}
-            contentFit="cover"
-            transition={300}
+        {/* Hero Backdrop with Gradient */}
+        <View style={styles.backdropContainer}>
+          {backdropUri ? (
+            <Image
+              source={{ uri: backdropUri }}
+              style={styles.backdrop}
+              placeholder={{ blurhash: BLURHASH }}
+              contentFit="cover"
+              transition={300}
+            />
+          ) : (
+            <View style={[styles.backdrop, styles.backdropPlaceholder]} />
+          )}
+          <LinearGradient
+            colors={["transparent", "rgba(15,23,42,0.7)", colors.surface.dark]}
+            locations={[0, 0.6, 1]}
+            style={styles.backdropGradient}
           />
-        ) : (
-          <View style={[styles.backdrop, styles.backdropPlaceholder]} />
-        )}
+        </View>
 
         {/* Poster + Title Row */}
         <View style={styles.headerRow}>
-          {posterUri ? (
-            <Image
-              source={{ uri: posterUri }}
-              style={styles.poster}
-              placeholder={{ blurhash: BLURHASH }}
-              contentFit="cover"
-              transition={200}
-            />
-          ) : (
-            <View style={[styles.poster, styles.posterPlaceholder]}>
-              <Film color={colors.text.muted} size={32} />
-            </View>
-          )}
+          <View style={styles.posterShadow}>
+            {posterUri ? (
+              <Image
+                source={{ uri: posterUri }}
+                style={styles.poster}
+                placeholder={{ blurhash: BLURHASH }}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <View style={[styles.poster, styles.posterPlaceholder]}>
+                <Film color={colors.text.muted} size={32} />
+              </View>
+            )}
+          </View>
 
           <View style={styles.headerInfo}>
             <Text style={styles.title}>{movie.title}</Text>
@@ -111,14 +120,14 @@ export default function MovieDetailScreen() {
 
             <View style={styles.metaRow}>
               {year && (
-                <View style={styles.metaItem}>
-                  <Calendar color={colors.text.muted} size={14} />
+                <View style={styles.metaChip}>
+                  <Calendar color={colors.text.secondary} size={13} />
                   <Text style={styles.metaText}>{year}</Text>
                 </View>
               )}
               {movie.runtime != null && movie.runtime > 0 && (
-                <View style={styles.metaItem}>
-                  <Clock color={colors.text.muted} size={14} />
+                <View style={styles.metaChip}>
+                  <Clock color={colors.text.secondary} size={13} />
                   <Text style={styles.metaText}>{movie.runtime} min</Text>
                 </View>
               )}
@@ -131,9 +140,9 @@ export default function MovieDetailScreen() {
             )}
 
             {movie.directorName && (
-              <View style={styles.metaItem}>
-                <User color={colors.text.muted} size={14} />
-                <Text style={styles.metaText}>{movie.directorName}</Text>
+              <View style={styles.directorRow}>
+                <User color={colors.text.muted} size={13} />
+                <Text style={styles.directorText}>Directed by {movie.directorName}</Text>
               </View>
             )}
           </View>
@@ -158,7 +167,8 @@ export default function MovieDetailScreen() {
               {scoreData && (
                 <Text style={styles.confidenceText}>
                   Based on {scoreData.sourcesAvailable} source
-                  {scoreData.sourcesAvailable !== 1 ? "s" : ""}
+                  {scoreData.sourcesAvailable !== 1 ? "s" : ""} ·{" "}
+                  {Math.round(scoreData.confidence)}% confidence
                 </Text>
               )}
             </View>
@@ -192,7 +202,12 @@ function SourceBar({ source }: { source: SourceRating }) {
     <View style={styles.sourceRow}>
       <View style={styles.sourceHeader}>
         <Text style={styles.sourceLabel}>{source.label}</Text>
-        <Text style={styles.sourceWeight}>{Math.round(source.weight * 100)}%</Text>
+        <View style={styles.sourceRight}>
+          <Text style={[styles.sourceScore, { color: barColor }]}>
+            {source.rawScore}/{source.maxScore}
+          </Text>
+          <Text style={styles.sourceWeight}>{Math.round(source.weight * 100)}%</Text>
+        </View>
       </View>
       <View style={styles.barTrack}>
         <View
@@ -202,9 +217,6 @@ function SourceBar({ source }: { source: SourceRating }) {
           ]}
         />
       </View>
-      <Text style={[styles.sourceScore, { color: barColor }]}>
-        {source.rawScore}/{source.maxScore}
-      </Text>
     </View>
   );
 }
@@ -216,19 +228,21 @@ function CastCard({ member }: { member: CastMember }) {
 
   return (
     <View style={styles.castCard}>
-      {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={styles.castImage}
-          placeholder={{ blurhash: BLURHASH }}
-          contentFit="cover"
-          transition={200}
-        />
-      ) : (
-        <View style={[styles.castImage, styles.castImagePlaceholder]}>
-          <User color={colors.text.muted} size={24} />
-        </View>
-      )}
+      <View style={styles.castImageContainer}>
+        {imageUri ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.castImage}
+            placeholder={{ blurhash: BLURHASH }}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.castImage, styles.castImagePlaceholder]}>
+            <User color={colors.text.muted} size={24} />
+          </View>
+        )}
+      </View>
       <Text style={styles.castName} numberOfLines={1}>
         {member.name}
       </Text>
@@ -245,18 +259,41 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorText: { color: colors.text.muted, fontSize: fontSize.md },
 
-  backdrop: { width: "100%", height: 220 },
+  backdropContainer: { position: "relative" },
+  backdrop: { width: "100%", height: 260 },
   backdropPlaceholder: { backgroundColor: colors.surface.card },
+  backdropGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+  },
 
   headerRow: {
     flexDirection: "row",
     padding: spacing.lg,
-    marginTop: -60,
+    marginTop: -80,
+  },
+  posterShadow: {
+    borderRadius: borderRadius.lg,
+    overflow: "hidden",
+    ...Platform.select({
+      android: {
+        elevation: 8,
+      },
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+      },
+    }),
   },
   poster: {
-    width: 120,
-    height: 180,
-    borderRadius: borderRadius.md,
+    width: 130,
+    height: 195,
+    borderRadius: borderRadius.lg,
     overflow: "hidden",
   },
   posterPlaceholder: {
@@ -267,37 +304,55 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
     marginLeft: spacing.lg,
-    paddingTop: 64,
+    paddingTop: 84,
     gap: spacing.xs,
   },
   title: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     color: colors.text.primary,
+    lineHeight: 30,
   },
   scoreRow: { marginTop: spacing.xs },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  metaItem: {
+  metaChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+    backgroundColor: colors.surface.card,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
   },
   metaText: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     color: colors.text.secondary,
+    fontWeight: fontWeight.medium,
   },
   genres: {
     fontSize: fontSize.sm,
     color: colors.text.muted,
+    marginTop: spacing.xs,
+  },
+  directorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  directorText: {
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    fontWeight: fontWeight.medium,
   },
 
   section: {
-    marginTop: spacing.xl,
+    marginTop: spacing.xxl,
     paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
@@ -309,7 +364,7 @@ const styles = StyleSheet.create({
   overview: {
     fontSize: fontSize.md,
     color: colors.text.secondary,
-    lineHeight: 22,
+    lineHeight: 24,
   },
 
   card: {
@@ -325,6 +380,7 @@ const styles = StyleSheet.create({
   sourceHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.xs,
   },
   sourceLabel: {
@@ -332,9 +388,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: fontWeight.medium,
   },
+  sourceRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   sourceWeight: {
     fontSize: fontSize.xs,
     color: colors.text.muted,
+    minWidth: 30,
+    textAlign: "right",
   },
   barTrack: {
     height: 6,
@@ -348,8 +411,7 @@ const styles = StyleSheet.create({
   },
   sourceScore: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
-    marginTop: 2,
+    fontWeight: fontWeight.semibold,
   },
   confidenceText: {
     fontSize: fontSize.xs,
@@ -365,9 +427,15 @@ const styles = StyleSheet.create({
     width: 100,
     alignItems: "center",
   },
+  castImageContainer: {
+    borderRadius: borderRadius.full,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: colors.surface.border,
+  },
   castImage: {
-    width: 80,
-    height: 80,
+    width: 76,
+    height: 76,
     borderRadius: borderRadius.full,
     overflow: "hidden",
   },
@@ -378,7 +446,7 @@ const styles = StyleSheet.create({
   },
   castName: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
     color: colors.text.primary,
     marginTop: spacing.sm,
     textAlign: "center",
@@ -387,5 +455,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.text.muted,
     textAlign: "center",
+    marginTop: 2,
   },
 });

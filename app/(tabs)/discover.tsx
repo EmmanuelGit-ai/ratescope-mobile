@@ -2,13 +2,41 @@
 
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { FlashList } from "@shopify/flash-list";
+import { Clock } from "lucide-react-native";
 import { MovieCard } from "../../src/components/MovieCard";
 import { useMoviesByMood } from "../../src/hooks/useMovies";
 import { colors, fontSize, fontWeight, spacing, borderRadius } from "../../src/constants/theme";
 import { MOOD_MAPPINGS, TIME_BUDGETS } from "../../src/constants/moods";
 import type { Mood } from "../../src/types";
+
+// Each mood gets a unique gradient for visual distinctness
+const MOOD_GRADIENTS: Record<string, [string, string]> = {
+  thrilling: ["rgba(220,38,38,0.25)", "rgba(220,38,38,0.05)"],
+  heartwarming: ["rgba(244,63,94,0.25)", "rgba(244,63,94,0.05)"],
+  "mind-bending": ["rgba(139,92,246,0.25)", "rgba(139,92,246,0.05)"],
+  "laugh-out-loud": ["rgba(245,158,11,0.25)", "rgba(245,158,11,0.05)"],
+  "edge-of-seat": ["rgba(239,68,68,0.25)", "rgba(239,68,68,0.05)"],
+  cozy: ["rgba(251,191,36,0.25)", "rgba(251,191,36,0.05)"],
+  epic: ["rgba(59,130,246,0.25)", "rgba(59,130,246,0.05)"],
+  dark: ["rgba(100,116,139,0.30)", "rgba(100,116,139,0.05)"],
+  inspiring: ["rgba(34,197,94,0.25)", "rgba(34,197,94,0.05)"],
+  nostalgic: ["rgba(168,85,247,0.25)", "rgba(168,85,247,0.05)"],
+};
+
+const MOOD_ACCENT: Record<string, string> = {
+  thrilling: "#DC2626",
+  heartwarming: "#F43F5E",
+  "mind-bending": "#8B5CF6",
+  "laugh-out-loud": "#F59E0B",
+  "edge-of-seat": "#EF4444",
+  cozy: "#FBBF24",
+  epic: "#3B82F6",
+  dark: "#64748B",
+  inspiring: "#22C55E",
+  nostalgic: "#A855F7",
+};
 
 export default function DiscoverScreen() {
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
@@ -31,22 +59,39 @@ export default function DiscoverScreen() {
         <Text style={styles.heading}>How are you feeling?</Text>
 
         <View style={styles.moodGrid}>
-          {MOOD_MAPPINGS.map((m) => (
-            <TouchableOpacity
-              key={m.mood}
-              style={[styles.moodCard, selectedMood === m.mood && styles.moodSelected]}
-              onPress={() => setSelectedMood(selectedMood === m.mood ? null : m.mood)}
-              accessibilityLabel={m.label}
-            >
-              <Text style={styles.moodEmoji}>{m.emoji}</Text>
-              <Text style={[styles.moodLabel, selectedMood === m.mood && styles.moodLabelSelected]}>
-                {m.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {MOOD_MAPPINGS.map((m) => {
+            const isSelected = selectedMood === m.mood;
+            const gradient = MOOD_GRADIENTS[m.mood] ?? ["transparent", "transparent"];
+            const accent = MOOD_ACCENT[m.mood] ?? colors.brand.green;
+
+            return (
+              <TouchableOpacity
+                key={m.mood}
+                style={[styles.moodCard, isSelected && { borderColor: accent }]}
+                onPress={() => setSelectedMood(isSelected ? null : m.mood)}
+                accessibilityLabel={m.label}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={isSelected ? [gradient[0], gradient[1]] : ["transparent", "transparent"]}
+                  style={styles.moodGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                  <Text style={[styles.moodLabel, isSelected && { color: accent, fontWeight: fontWeight.semibold }]}>
+                    {m.label}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <Text style={[styles.heading, { marginTop: spacing.xxl }]}>How much time?</Text>
+        <View style={styles.timeSectionHeader}>
+          <Clock color={colors.text.secondary} size={18} />
+          <Text style={styles.heading}>How much time?</Text>
+        </View>
 
         <View style={styles.timeRow}>
           {TIME_BUDGETS.map((t) => (
@@ -55,6 +100,7 @@ export default function DiscoverScreen() {
               style={[styles.timeChip, selectedTime === t.label && styles.timeSelected]}
               onPress={() => setSelectedTime(selectedTime === t.label ? null : t.label)}
               accessibilityLabel={t.label}
+              activeOpacity={0.7}
             >
               <Text style={[styles.timeLabel, selectedTime === t.label && styles.timeLabelSelected]}>
                 {t.label}
@@ -106,20 +152,24 @@ const styles = StyleSheet.create({
   moodGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   moodCard: {
     width: "31%",
-    alignItems: "center",
-    padding: spacing.md,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.surface.border,
-    backgroundColor: colors.surface.card,
+    overflow: "hidden",
   },
-  moodSelected: {
-    borderColor: colors.brand.green,
-    backgroundColor: "rgba(27,122,77,0.15)",
+  moodGradient: {
+    alignItems: "center",
+    padding: spacing.md,
   },
   moodEmoji: { fontSize: 28, marginBottom: spacing.xs },
   moodLabel: { fontSize: fontSize.xs, color: colors.text.secondary, textAlign: "center" },
-  moodLabelSelected: { color: colors.brand.green, fontWeight: fontWeight.medium },
+  timeSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
+  },
   timeRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   timeChip: {
     paddingHorizontal: spacing.lg,
@@ -127,6 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: colors.surface.border,
+    backgroundColor: colors.surface.card,
   },
   timeSelected: {
     borderColor: colors.brand.green,

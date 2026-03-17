@@ -3,6 +3,8 @@
 import { View, Text, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
+import { LinearGradient } from "expo-linear-gradient";
+import { Star, TrendingUp } from "lucide-react-native";
 import { useTrending } from "../../src/hooks/useMovies";
 import { MovieCard } from "../../src/components/MovieCard";
 import { colors, fontSize, fontWeight, spacing, borderRadius } from "../../src/constants/theme";
@@ -11,18 +13,29 @@ import type { MovieWithScores } from "../../src/types";
 function ListHeader() {
   return (
     <View>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>
-          Stop Scrolling.{" "}
-          <Text style={styles.heroAccent}>Start Watching.</Text>
-        </Text>
-        <Text style={styles.heroSub}>
-          One score from 6+ sources. AI predictions. Find your movie in under 2
-          minutes.
-        </Text>
-      </View>
+      <LinearGradient
+        colors={["rgba(27,122,77,0.25)", "rgba(27,122,77,0.08)", "transparent"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.heroGradient}
+      >
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Star color={colors.brand.green} fill={colors.brand.green} size={14} />
+            <Text style={styles.heroBadgeText}>6+ SOURCES · 1 SCORE</Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            Stop Scrolling.{"\n"}
+            <Text style={styles.heroAccent}>Start Watching.</Text>
+          </Text>
+          <Text style={styles.heroSub}>
+            One score from 6+ sources. AI predictions.{"\n"}Find your movie in under 2 minutes.
+          </Text>
+        </View>
+      </LinearGradient>
 
       <View style={styles.sectionHeader}>
+        <TrendingUp color={colors.brand.green} size={20} />
         <Text style={styles.sectionTitle}>Trending This Week</Text>
       </View>
     </View>
@@ -107,16 +120,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface.dark,
   },
+  heroGradient: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  },
   hero: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxxl,
     alignItems: "center",
   },
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: "rgba(27,122,77,0.15)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    marginBottom: spacing.lg,
+  },
+  heroBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.brand.green,
+    letterSpacing: 1,
+  },
   heroTitle: {
-    fontSize: fontSize.xxl,
+    fontSize: fontSize.hero,
     fontWeight: fontWeight.bold,
     color: colors.text.primary,
     textAlign: "center",
+    lineHeight: 40,
   },
   heroAccent: {
     color: colors.brand.green,
@@ -125,10 +158,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text.secondary,
     textAlign: "center",
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.xl,
+    marginTop: spacing.md,
+    lineHeight: 22,
   },
   sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
