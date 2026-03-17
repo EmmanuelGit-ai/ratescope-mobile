@@ -1,7 +1,7 @@
 // React Query hooks for movie data
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchMovies, fetchMovieDetail, fetchTrending, searchMovies, fetchMoviesByMood } from "../api/movies";
+import { fetchMovies, fetchMovieDetail, fetchTrending, searchMovies, fetchMoviesByMood, fetchDailyTop, fetchByIndustry } from "../api/movies";
 import { fetchAggregatedScore } from "../api/ratings";
 import { fetchPrediction } from "../api/predict";
 import { API_CONFIG } from "../constants/api";
@@ -77,5 +77,23 @@ export function useMoviesByMood(params: {
     queryFn: () => fetchMoviesByMood(params),
     staleTime,
     enabled: params.genreIds.length > 0,
+  });
+}
+
+export function useDailyTop(industry?: string) {
+  return useQuery({
+    queryKey: ["movies", "dailyTop", industry ?? "all"],
+    queryFn: () => fetchDailyTop(industry),
+    staleTime,
+    retry: 1,
+  });
+}
+
+export function useByIndustry(industry: string) {
+  return useQuery({
+    queryKey: ["movies", "industry", industry],
+    queryFn: () => fetchByIndustry(industry),
+    staleTime,
+    enabled: !!industry,
   });
 }

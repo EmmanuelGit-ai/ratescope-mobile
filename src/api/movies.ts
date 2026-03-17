@@ -1,7 +1,7 @@
 // Movie API Service — Supabase queries
 
 import { supabase, supabaseConfigured, handleSupabaseError } from "./client";
-import type { Movie, MovieWithScores, AggregatedScore, Genre, CastMember } from "../types";
+import type { MovieWithScores, Genre, CastMember, DailyRanking, Industry } from "../types";
 
 const TMDB_GENRE_MAP: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
@@ -25,6 +25,7 @@ const MOVIE_SELECT = `
   backdrop_path,
   popularity,
   status,
+  industry,
   aggregated_scores (
     star_rating,
     confidence,
@@ -64,6 +65,7 @@ function mapMovie(row: Record<string, unknown>): MovieWithScores {
     backdropPath: (row.backdrop_path as string) || undefined,
     popularity: (row.popularity as number) || undefined,
     status: (row.status as string) || "released",
+    industry: (row.industry as Industry) || undefined,
   };
 
   if (agg) {
@@ -150,7 +152,7 @@ export async function fetchMovieDetail(id: string): Promise<MovieWithScores> {
 
   const movie = mapMovie(data);
 
-  const castRows = data.cast_members as Array<Record<string, unknown>> | null;
+  const castRows = data.cast_members as Record<string, unknown>[] | null;
   if (castRows) {
     movie.cast = castRows.map((c, i): CastMember => ({
       id: (c.id as number) ?? i,
@@ -215,6 +217,65 @@ export async function fetchMoviesByMood(params: {
   }
 
   const { data, error } = await query;
+
+  if (error) handleSupabaseError(error);
+
+  return (data ?? []).map(mapMovie);
+}
+
+export async function fetchDailyTop(industry?: string): Promise<DailyRanking[]> {
+  const today = new Date().toISOString().split("T")[0];
+
+  let query = supabase
+    .from("daily_rankings")
+    .select(`
+      id,
+      movie_id,
+      rank_date,
+      global_rank,
+      industry_rank,
+      industry,
+      daily_score,
+      popularity_velocity,
+      movies (
+        ${MOVIE_SELECT}
+      )
+    `)
+    .eq("rank_date", today)
+    .order("global_rank", { ascending: true })
+    .limit(20);
+
+  if (industry && industry !== "all") {
+    query = query.eq("industry", industry);
+  }
+
+  const { data, error } = await query;
+
+  if (error) handleSupabaseError(error);
+
+  return (data ?? []).map((row): DailyRanking => {
+    const movieRow = row.movies as Record<string, unknown> | null;
+    return {
+      id: String(row.id),
+      movieId: String(row.movie_id),
+      rankDate: row.rank_date as string,
+      globalRank: row.global_rank as number,
+      industryRank: row.industry_rank as number,
+      industry: row.industry as Industry,
+      dailyScore: row.daily_score as number,
+      popularityVelocity: row.popularity_velocity as number,
+      movie: movieRow ? mapMovie(movieRow) : undefined,
+    };
+  });
+}
+
+export async function fetchByIndustry(industry: string): Promise<MovieWithScores[]> {
+  const { data, error } = await supabase
+    .from("movies")
+    .select(MOVIE_SELECT)
+    .eq("industry", industry)
+    .order("popularity", { ascending: false })
+    .limit(20);
 
   if (error) handleSupabaseError(error);
 

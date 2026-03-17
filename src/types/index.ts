@@ -71,6 +71,17 @@ export interface CastMember {
   popularity: number;
 }
 
+export type Industry =
+  | "hollywood"
+  | "nollywood"
+  | "bollywood"
+  | "korean"
+  | "chinese"
+  | "anime"
+  | "european"
+  | "latin_american"
+  | "other";
+
 export interface Movie {
   id: string;
   tmdbId: number;
@@ -88,6 +99,9 @@ export interface Movie {
   backdropPath?: string;
   popularity?: number;
   status: string;
+  industry?: Industry;
+  originalLanguage?: string;
+  productionCountries?: string[];
 }
 
 export interface MovieWithScores extends Movie {
@@ -119,6 +133,18 @@ export interface TimeBudget {
   label: string;
   minMinutes: number;
   maxMinutes: number;
+}
+
+export interface DailyRanking {
+  id: string;
+  movieId: string;
+  rankDate: string;
+  globalRank: number;
+  industryRank: number;
+  industry: Industry;
+  dailyScore: number;
+  popularityVelocity: number;
+  movie?: MovieWithScores;
 }
 
 export interface ApiResponse<T> {
